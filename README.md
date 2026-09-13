@@ -4,7 +4,7 @@ Google TV sports multiview app. The initial Android preview is currently named *
 
 ![Four-stream playback test](docs/preview.png)
 
-## Current preview · 0.1
+## Current preview · 0.2
 
 A native, remote-controlled Android / Google TV player with an NFL-focused feed list and up to four simultaneous players. Built for a personal Hisense Google TV installation.
 
@@ -12,9 +12,9 @@ A native, remote-controlled Android / Google TV player with an NFL-focused feed 
 
 ## Install on the TV
 
-Download the `ApeSports-debug-apk` artifact from a successful **Actions → Android build** run and extract `app-debug.apk`. The original local preview was distributed as `GridironTV-0.1-debug.apk`; either filename can be installed. CI uses a temporary debug signing key, so builds from different runs may require uninstalling the previous app first, which clears saved feeds.
+Download the `ApeSports-debug-apk` artifact from a successful **Actions → Android build** run and extract `app-debug.apk`. The local preview is distributed as `ApeSports-0.2-debug.apk`; either filename can be installed. CI uses a temporary debug signing key, so builds from different runs may require uninstalling the previous app first, which clears saved feeds.
 
-1. Transfer `GridironTV-0.1-debug.apk` to the TV using a USB drive or your preferred file-transfer app.
+1. Transfer `ApeSports-0.2-debug.apk` to the TV using a USB drive or your preferred file-transfer app.
 2. Open the APK in a TV file manager. If prompted, allow that file manager to install unknown apps, then install.
 3. Open **Gridiron TV** from the TV's apps list.
 4. Choose **Sources → Load 4 test videos** to check four-player decoding and network performance.
@@ -29,6 +29,20 @@ adb -s YOUR_TV_SERIAL install -r GridironTV-0.1-debug.apk
 
 `YOUR_TV_SERIAL` must be the TV entry reported by `adb devices`. The app is a debug-signed preview for sideloading, not a Play Store release. Future updates must use the same signing key to preserve installed data; otherwise uninstalling clears saved feeds.
 
+## Full-screen layouts
+
+The entire TV display is the playback canvas, with no permanent header, footer, tile padding, or gutters.
+
+- **1 game:** one viewport covering the entire screen.
+- **2 games:** two equal-height viewports, one above the other.
+- **4 games:** four equal viewports in a 2×2 grid.
+
+Every video uses aspect-ratio-preserving fit mode. Footage is never cropped or stretched to fill a viewport; unused space is pure black. For example, two 16:9 feeds on a 16:9 TV each occupy the centered half-width area of their row, with black to the left and right.
+
+Controls and game labels float over playback and disappear after five seconds of inactivity. Press Back or Menu to access Sources and layout buttons. Controls never change video size. Error messages remain available when a feed fails.
+
+![Two stacked games with black side areas](docs/two-games.png)
+
 ## Remote controls
 
 | Control | Action |
@@ -37,9 +51,11 @@ adb -s YOUR_TV_SERIAL install -r GridironTV-0.1-debug.apk
 | OK on an empty tile | Choose a feed |
 | OK on a playing tile | Make that game's audio audible |
 | Hold OK on a playing tile | Full screen, replace, retry, or remove |
-| Back in full screen | Return to multiview |
+| Back after expanding one game | Return to multiview |
+| Back in the regular layout / Menu | Show controls; Back again hides them |
+| Done / Exit in controls | Hide controls / leave the app |
 | Remote play/pause | Pause or resume all active players |
-| 1 / 2 / 4 views | Change layout and number of active players |
+| 1 / 2 / 4 games in controls | Change layout and number of active players |
 
 Only one player's volume is enabled at a time. Switching to one or two views releases the hidden players; their assignments are remembered when you return to four views. Leaving the app releases every player. Returning reconnects the selected feeds.
 

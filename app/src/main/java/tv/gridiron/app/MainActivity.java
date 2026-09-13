@@ -3,6 +3,8 @@ package tv.gridiron.app;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -15,6 +17,7 @@ import android.widget.*;
 import androidx.media3.common.*;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.ui.PlayerView;
+import androidx.media3.ui.AspectRatioFrameLayout;
 import org.json.*;
 import java.net.*;
 import java.io.*;
@@ -32,7 +35,12 @@ public class MainActivity extends Activity {
     private final TextView[] labels=new TextView[4];
     private final String[] states=new String[4];
     private final ExecutorService network=Executors.newSingleThreadExecutor();
-    private LinearLayout root, wall;
+    private FrameLayout root;
+    private LinearLayout wall, controls;
+    private TextView help;
+    private boolean controlsVisible=false;
+    private final Handler ui=new Handler(Looper.getMainLooper());
+    private final Runnable hideControls=()->setControlsVisible(false);
     private int count=4, audible=0, full=-1;
     private boolean started=false;
 
@@ -53,37 +61,71 @@ public class MainActivity extends Activity {
         Button b=new Button(this);b.setText(title);b.setAllCaps(false);b.setTextSize(14);b.setTextColor(WHITE);b.setPadding(dp(14),0,dp(14),0);b.setMinWidth(0);b.setMinimumWidth(0);
         focusStyle(b);b.setOnClickListener(v->action.run());return b;
     }
+    boolean hasGames() {
+        for(int i=0;i<count;i++)if(games[i]!=null)return true;
+        return false;
+    }
+    void setControlsVisible(boolean visible) {
+        controlsVisible=visible||!hasGames();
+        controls.setVisibility(controlsVisible?View.VISIBLE:View.GONE);
+        help.setVisibility(controlsVisible?View.VISIBLE:View.GONE);
+        for(int i=0;i<4;i++) {
+            if(labels[i]!=null)labels[i].setVisibility(controlsVisible||(states[i]!=null&&states[i].startsWith("Error"))?View.VISIBLE:View.GONE);
+            View tile=root.findViewWithTag("slot"+i);
+            if(tile!=null)tile.setForeground(controlsVisible&&tile.hasFocus()?shape(Color.TRANSPARENT,GREEN):null);
+        }
+        ui.removeCallbacks(hideControls);
+        if(controlsVisible&&hasGames())ui.postDelayed(hideControls,5000);
+        if(!controlsVisible) {
+            View tile=root.findViewWithTag("slot"+(full>=0?full:audible));
+            if(tile!=null)tile.requestFocus();
+        }
+    }
+    void showMenu() {
+        setControlsVisible(true);
+        controls.getChildAt(1).requestFocus();
+    }
     void render() {
         for(PlayerView view:surfaces)view.setPlayer(null);
         surfaces.clear();
         Arrays.fill(labels,null);
-        root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(dp(28),dp(18),dp(28),dp(14));root.setBackgroundColor(BG);
-        if(full<0) {
-            LinearLayout top=new LinearLayout(this);top.setGravity(Gravity.CENTER_VERTICAL);
-            TextView brand=text("▦  GRIDIRON",24,WHITE);brand.setTypeface(null,Typeface.BOLD);top.addView(brand,new LinearLayout.LayoutParams(0,dp(50),1));
-            TextView tag=text("NFL  /  GAME ROOM",12,GREEN);tag.setGravity(Gravity.CENTER);top.addView(tag,new LinearLayout.LayoutParams(dp(170),dp(50)));
-            Button sources=button("Sources",this::sources);top.addView(sources,new LinearLayout.LayoutParams(dp(112),dp(42)));root.addView(top);
-            LinearLayout sub=new LinearLayout(this);sub.setGravity(Gravity.CENTER_VERTICAL);sub.setPadding(0,dp(8),0,dp(14));
-            TextView heading=text("Your Sunday. Every angle.",21,WHITE);sub.addView(heading,new LinearLayout.LayoutParams(0,dp(44),1));
-            for(int n:new int[]{1,2,4}) { Button b=button(n+(n==1?" view":" views")+(count==n?" ✓":""),()->setCount(n));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(dp(100),dp(40));p.leftMargin=dp(8);sub.addView(b,p); }
-            root.addView(sub);
+        root=new FrameLayout(this);root.setBackgroundColor(Color.BLACK);
+        wall=new LinearLayout(this);wall.setOrientation(LinearLayout.VERTICAL);wall.setBackgroundColor(Color.BLACK);
+        root.addView(wall,new FrameLayout.LayoutParams(-1,-1));
+        int visibleCount=full>=0?1:count;
+        int rows=visibleCount==1?1:2,cols=visibleCount==4?2:1;
+        for(int r=0;r<rows;r++) {
+            LinearLayout row=new LinearLayout(this);
+            for(int c=0;c<cols;c++)row.addView(tile(full>=0?full:r*cols+c),new LinearLayout.LayoutParams(0,-1,1));
+            wall.addView(row,new LinearLayout.LayoutParams(-1,0,1));
         }
-        wall=new LinearLayout(this);wall.setOrientation(LinearLayout.VERTICAL);
-        root.addView(wall,new LinearLayout.LayoutParams(-1,0,1));
-        if(full>=0) { LinearLayout row=new LinearLayout(this);row.addView(tile(full),new LinearLayout.LayoutParams(0,-1,1));wall.addView(row,new LinearLayout.LayoutParams(-1,0,1)); }
-        else {
-            int rows=count==4?2:1,cols=count==1?1:2;
-            for(int r=0;r<rows;r++) { LinearLayout row=new LinearLayout(this);for(int c=0;c<cols;c++) {LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,-1,1);p.setMargins(dp(4),dp(4),dp(4),dp(4));row.addView(tile(r*cols+c),p);}wall.addView(row,new LinearLayout.LayoutParams(-1,0,1)); }
+        // Controls float over playback; they never reserve space or resize video.
+        controls=new LinearLayout(this);controls.setGravity(Gravity.CENTER_VERTICAL);
+        controls.setPadding(dp(24),dp(12),dp(24),dp(12));controls.setBackgroundColor(0xe60b1114);
+        TextView brand=text("GRIDIRON",20,WHITE);brand.setTypeface(null,Typeface.BOLD);
+        controls.addView(brand,new LinearLayout.LayoutParams(0,dp(44),1));
+        controls.addView(button("Sources",this::sources),new LinearLayout.LayoutParams(dp(106),dp(44)));
+        for(int n:new int[]{1,2,4}) {
+            Button b=button(n+(n==1?" game":" games"),()->setCount(n));
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(dp(100),dp(44));lp.leftMargin=dp(8);controls.addView(b,lp);
         }
-        TextView help=text(full>=0?"BACK  Return to multiview     •     OK  Audio     •     HOLD OK  Game options":"D-PAD  Move     •     OK  Choose game / audio     •     HOLD OK  Full screen, replace or retry",12,MUTED);
-        help.setGravity(Gravity.CENTER_VERTICAL);root.addView(help,new LinearLayout.LayoutParams(-1,dp(32)));
+        Button done=button("Done",()->setControlsVisible(false));controls.addView(done,new LinearLayout.LayoutParams(dp(85),dp(44)));
+        controls.addView(button("Exit",this::finish),new LinearLayout.LayoutParams(dp(75),dp(44)));
+        root.addView(controls,new FrameLayout.LayoutParams(-1,dp(68),Gravity.TOP));
+        help=text("BACK / MENU  Controls     •     OK  Audio     •     HOLD OK  Game options",13,WHITE);
+        help.setGravity(Gravity.CENTER);help.setBackgroundColor(0xe60b1114);
+        root.addView(help,new FrameLayout.LayoutParams(-1,dp(36),Gravity.BOTTOM));
         setContentView(root);
-        if(full>=0)root.findViewWithTag("slot"+full).requestFocus();
+        setControlsVisible(false);
+        View tile=root.findViewWithTag("slot"+(full>=0?full:audible));
+        if(tile!=null)tile.requestFocus();
     }
     View tile(int i) {
-        FrameLayout frame=new FrameLayout(this);frame.setTag("slot"+i);frame.setPadding(dp(3),dp(3),dp(3),dp(3));focusStyle(frame);frame.setClipToOutline(true);
+        FrameLayout frame=new FrameLayout(this);frame.setTag("slot"+i);frame.setFocusable(true);frame.setBackgroundColor(Color.BLACK);
+        frame.setOnFocusChangeListener((v,f)->v.setForeground(f&&controlsVisible?shape(Color.TRANSPARENT,GREEN):null));
         if(games[i]!=null) {
             PlayerView pv=new PlayerView(this);surfaces.add(pv);pv.setUseController(false);pv.setFocusable(false);pv.setFocusableInTouchMode(false);pv.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);pv.setPlayer(players[i]);
+            pv.setResizeMode(AspectRatioFrameLayout.RESIZE_MODE_FIT);pv.setBackgroundColor(Color.BLACK);pv.setShutterBackgroundColor(Color.BLACK);
             pv.setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS);frame.addView(pv,new FrameLayout.LayoutParams(-1,-1));
             TextView label=text("",14,WHITE);label.setPadding(dp(12),dp(8),dp(12),dp(8));label.setBackgroundColor(0xe60b1114);labels[i]=label;updateLabel(i);
             FrameLayout.LayoutParams lp=new FrameLayout.LayoutParams(-1,dp(44),Gravity.BOTTOM);frame.addView(label,lp);
@@ -96,7 +138,7 @@ public class MainActivity extends Activity {
             frame.addView(empty,new FrameLayout.LayoutParams(-1,-1));
         }
         frame.setContentDescription("Game slot "+(i+1)+(games[i]==null?", empty":", "+games[i].title));
-        frame.setOnClickListener(v->{if(games[i]==null)pick(i);else{audible=i;audio();save();}});
+        frame.setOnClickListener(v->{if(games[i]==null)pick(i);else{audible=i;audio();save();setControlsVisible(true);}});
         frame.setOnLongClickListener(v->{options(i);return true;});return frame;
     }
     void setCount(int n) {
@@ -105,7 +147,7 @@ public class MainActivity extends Activity {
         startPlayers();save();render();
     }
     void updateLabel(int i) {
-        if(labels[i]!=null&&games[i]!=null)labels[i].setText((i==audible?"● AUDIO   ":"○   ")+games[i].title+"   ·   "+(states[i]==null?"Connecting…":states[i]));
+        if(labels[i]!=null&&games[i]!=null){labels[i].setText((i==audible?"● AUDIO   ":"○   ")+games[i].title+"   ·   "+(states[i]==null?"Connecting…":states[i]));labels[i].setVisibility(controlsVisible||(states[i]!=null&&states[i].startsWith("Error"))?View.VISIBLE:View.GONE);}
     }
     void audio() {
         for(int i=0;i<4;i++)if(players[i]!=null) {
@@ -189,9 +231,15 @@ public class MainActivity extends Activity {
     void save() {try {JSONArray feeds=new JSONArray(),slots=new JSONArray();for(FeedParser.Feed f:catalog)feeds.put(json(f));for(FeedParser.Feed f:games)slots.put(f==null?JSONObject.NULL:json(f));getPreferences(0).edit().putString("feeds",feeds.toString()).putString("slots",slots.toString()).putInt("count",count).putInt("audio",audible).apply();}catch(JSONException ignored){}}
     void load() {try {var p=getPreferences(0);count=p.getInt("count",4);if(count!=1&&count!=2&&count!=4)count=4;audible=Math.max(0,Math.min(count-1,p.getInt("audio",0)));JSONArray feeds=new JSONArray(p.getString("feeds","[]"));for(int i=0;i<feeds.length();i++)catalog.add(feed(feeds.getJSONObject(i)));JSONArray slots=new JSONArray(p.getString("slots","[]"));for(int i=0;i<Math.min(4,slots.length());i++)if(!slots.isNull(i))games[i]=feed(slots.getJSONObject(i));}catch(Exception ignored){}}
     @Override protected void onStart(){super.onStart();started=true;startPlayers();render();}
-    @Override protected void onStop(){started=false;for(int i=0;i<4;i++)release(i);super.onStop();}
+    @Override protected void onStop(){started=false;ui.removeCallbacks(hideControls);for(int i=0;i<4;i++)release(i);super.onStop();}
     @Override protected void onDestroy(){network.shutdownNow();super.onDestroy();}
-    @Override public void onBackPressed(){if(full>=0){full=-1;render();}else super.onBackPressed();}
-    @Override public boolean onKeyDown(int key,KeyEvent e){if(key==KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE){boolean play=false;for(ExoPlayer p:players)if(p!=null&&!p.getPlayWhenReady())play=true;for(ExoPlayer p:players)if(p!=null)p.setPlayWhenReady(play);return true;}return super.onKeyDown(key,e);}
+    @Override public void onBackPressed(){if(full>=0){full=-1;render();}else if(controlsVisible)setControlsVisible(false);else showMenu();}
+    @Override public boolean dispatchKeyEvent(KeyEvent e) {
+        int key=e.getKeyCode();
+        if(root!=null&&e.getAction()==KeyEvent.ACTION_DOWN&&(key==KeyEvent.KEYCODE_DPAD_UP||key==KeyEvent.KEYCODE_DPAD_DOWN||key==KeyEvent.KEYCODE_DPAD_LEFT||key==KeyEvent.KEYCODE_DPAD_RIGHT))setControlsVisible(true);
+        return super.dispatchKeyEvent(e);
+    }
+    @Override public boolean onKeyDown(int key,KeyEvent e){
+        if(key==KeyEvent.KEYCODE_MENU){showMenu();return true;}
+        if(key==KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE){boolean play=false;for(ExoPlayer p:players)if(p!=null&&!p.getPlayWhenReady())play=true;for(ExoPlayer p:players)if(p!=null)p.setPlayWhenReady(play);return true;}return super.onKeyDown(key,e);}
 }
-
