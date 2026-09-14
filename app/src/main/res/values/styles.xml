@@ -1,1 +1,23 @@
-<resources><style name="AppTheme" parent="android:style/Theme.Material.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:windowActionModeOverlay">true</item><item name="android:colorAccent">#A4F77B</item><item name="android:windowLightStatusBar">false</item><item name="android:windowBackground">#0B1114</item><item name="android:windowFullscreen">true</item></style></resources>
+<resources>
+    <style name="AppTheme" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:colorAccent">#F3F2EE</item>
+        <item name="android:textColorPrimary">#F3F2EE</item>
+        <item name="android:textColorSecondary">#A4A7AA</item>
+        <item name="android:windowBackground">#101112</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:alertDialogTheme">@style/ApeDialog</item>
+    </style>
+    <style name="ApeDialog" parent="android:style/Theme.Material.Dialog.Alert">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:colorAccent">#F3F2EE</item>
+        <item name="android:textColorPrimary">#F3F2EE</item>
+        <item name="android:textColorSecondary">#A4A7AA</item>
+        <item name="android:colorBackground">#1B1D1F</item>
+        <item name="android:windowBackground">#1B1D1F</item>
+        <item name="android:windowElevation">0dp</item>
+        <item name="android:backgroundDimAmount">0.72</item>
+    </style>
+</resources>
