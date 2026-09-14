@@ -2,32 +2,23 @@
 
 <img src="app/src/main/res/drawable-xxxhdpi/ape_logo.png" alt="ApeSports" width="120" />
 
-A clean NFL viewing experience for Google TV. Find games, choose a stream, and watch up to four games at once using your TV remote.
+ApeSports brings NFL game day to your Google TV with a clean, simple interface. Pick your games, settle in, and watch up to four at once.
 
-- **One game:** fullscreen.
-- **Two games:** stacked vertically.
-- **Four games:** a 2×2 grid.
-- Original picture proportions, with black bars where needed.
-- Audio from one selected game at a time.
-- Team logos and named stream choices for each game.
+## 🏈 Key features
 
-**Current availability:** streams are not included. Add your own direct video URLs or import an NFL playlist. Website pages and iframe links cannot be played directly.
+- **Multiview:** watch one game fullscreen, two stacked vertically, or four in a grid.
+- **Your choice of audio:** listen to one game while keeping an eye on the others.
+- **Made for your TV:** browse matchups with team logos and control playback with your remote.
+- **Flexible sources:** save streams and choose between alternatives for each game.
+- **No stretched video:** games keep their original proportions in every layout.
 
-## Install
+Streams are not included. You'll need direct video links or an NFL playlist; website and iframe links won't work.
 
-Transfer **ApeSports.apk** to your Google TV, open it with a file manager, and allow installation when prompted. Launch ApeSports from your TV’s apps list. Requires Android 6.0 or newer.
+## 📺 How to install
 
-## Watch
+1. Transfer **ApeSports.apk** to your Google TV using a USB drive or file-transfer app.
+2. Open the APK with a file manager and allow installation when prompted.
+3. Launch **ApeSports** from your TV's apps list.
+4. Add your streams, select your games, and choose **Watch**.
 
-Select games, choose their **Sources**, then select **Watch**. Use **Saved streams** to add URLs or import a playlist.
-
-- **OK:** choose which game you hear.
-- **Hold OK:** change source, expand a game, or retry playback.
-- **Back:** leave fullscreen, show controls, then return home.
-- **Play/Pause:** control all games together.
-
-## Help
-
-Use **Settings → Check for updates** to check for published updates.
-
-If something goes wrong, open **Settings → Diagnostics** and export the report. Include what happened and approximately when. Reports stay on your TV unless you share them.
+Requires Android 6.0 or newer.
